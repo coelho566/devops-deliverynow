@@ -1,0 +1,32 @@
+name: "Terraform"
+
+on:
+  push: 
+    branches: ["main"]
+    
+jobs: 
+  terraform:
+    name: "Terraform Apply"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Configure AWS Credentials" 
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+          
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Terraform init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan \
+          -var="aws_ecr_name=${{ secrets.AWS_ECR_NAME }}"
+          -var="aws_region=${{ secrets.AWS_REGION_NAME }}" 
+    
+      - name: Terraform Apply 
+        run: terraform apply 
