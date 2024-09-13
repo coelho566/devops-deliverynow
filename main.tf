@@ -68,48 +68,67 @@ module "ecr" {
   }
 }
 
-module "secrets_manager" {
-  source = "terraform-aws-modules/secrets-manager/aws"
 
-  name            = "secrets/db-config"
-  secret_string   = jsonencode({
-      DB_HOST     = var.aws_region ,
-      DB_USER     = "user",
-      DB_PASSWORD = "password"
-  })
+resource "aws_eks_cluster" "basic_app_cluster" {
+  name     = "deliverynow-eks"
+  role_arn = "arn:aws:iam::388512399861:role/LabRole"
 
-  # Policy
-  create_policy       = true
-  block_public_policy = true
-  policy_statements = {
-    lambda = {
-      sid = "ApplicationReadWrite"
-      principals = [{
-        type        = "AWS"
-        identifiers = ["arn:aws:iam::388512399861:role/LabRole"]
-      }]
-      actions = [
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:PutSecretValue",
-        "secretsmanager:UpdateSecretVersionStage",
-      ]
-      resources = ["*"]
-    }
-    read = {
-      sid = "AllowAccountRead"
-      principals = [{
-        type        = "AWS"
-        identifiers = ["arn:aws:iam::388512399861:role/LabRole"]
-      }]
-      actions   = ["secretsmanager:DescribeSecret"]
-      resources = ["*"]
-    }
+  vpc_config {
+    subnet_ids = [
+      module.vpc.private_subnets[0],
+      module.vpc.public_subnets[0],
+      module.vpc.private_subnets[1],
+      module.vpc.public_subnets[1],
+      module.vpc.private_subnets[2],
+      module.vpc.public_subnets[2]
+    ]
+
+    # security_group_ids = [aws_security_group.basic_app_eks_sg.id]
   }
 
   tags = {
-    Terraform   = "true"
-    Environment = "dev"
+    Name = "basic_app_cluster"
   }
 }
 
+resource "aws_eks_node_group" "basic_app_node_group" {
+  cluster_name    = "deliverynow-eks"
+  node_group_name = "basic_app_node_group"
+  node_role_arn   = "arn:aws:iam::388512399861:role/LabRole"
+  subnet_ids      = [
+      module.vpc.private_subnets[0],
+      module.vpc.private_subnets[1],
+      module.vpc.private_subnets[2]
+    ]
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 5
+    min_size     = 1
+  }
+
+  lifecycle {
+    prevent_destroy = false
+  }
+
+  instance_types = ["t3.small"]
+  disk_size      = 20
+
+  # remote_access {
+  #   ec2_ssh_key = var.ssh_key_name
+  #   # source_security_group_ids = [aws_security_group.basic_app_sg.id]
+  # }
+
+  ami_type = "AL2_x86_64"
+
+  depends_on = [aws_eks_cluster.basic_app_cluster]
+
+  labels = {
+    environment = "dev"
+  }
+
+  tags = {
+    Name        = "basic_app_node_group"
+    Environment = "dev"
+  }
+}
