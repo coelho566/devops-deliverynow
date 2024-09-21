@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "5.66.0"
     }
   }
@@ -12,7 +12,7 @@ provider "aws" {
 }
 
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
+  source  = "terraform-aws-modules/vpc/aws"
   version = "5.13.0"
 
   name = "deliverynow-vpc"
@@ -25,24 +25,34 @@ module "vpc" {
   enable_nat_gateway = true
   enable_vpn_gateway = true
 
+  public_subnet_tags = {
+    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    "kubernetes.io/role/elb"                = 1
+  }
+
+  private_subnet_tags = {
+    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    "kubernetes.io/role/internal-elb"       = 1
+  }
+
   tags = {
-  Terraform   = "true"
-  Environment = "dev"
-  Project     = "deliverynow"
-  Teste     = "ok"
-}
+    Terraform                               = "true"
+    Environment                             = "dev"
+    Project                                 = "deliverynow"
+    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+  }
 
 }
 
 module "ecr" {
-  source = "terraform-aws-modules/ecr/aws"
+  source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
   repository_name = var.aws_ecr_name
 
   repository_read_write_access_arns = ["arn:aws:iam::388512399861:role/LabRole"]
-  repository_image_tag_mutability = "MUTABLE"
-  repository_encryption_type = "AES256"
+  repository_image_tag_mutability   = "MUTABLE"
+  repository_encryption_type        = "AES256"
 
   repository_lifecycle_policy = jsonencode({
     rules = [
@@ -87,7 +97,8 @@ resource "aws_eks_cluster" "basic_app_cluster" {
   }
 
   tags = {
-    Name = "basic_app_cluster"
+    Terraform   = "true"
+    Environment = "dev"
   }
 }
 
@@ -95,11 +106,11 @@ resource "aws_eks_node_group" "basic_app_node_group" {
   cluster_name    = "deliverynow-eks"
   node_group_name = "basic_app_node_group"
   node_role_arn   = "arn:aws:iam::388512399861:role/LabRole"
-  subnet_ids      = [
-      module.vpc.private_subnets[0],
-      module.vpc.private_subnets[1],
-      module.vpc.private_subnets[2]
-    ]
+  subnet_ids = [
+    module.vpc.private_subnets[0],
+    module.vpc.private_subnets[1],
+    module.vpc.private_subnets[2]
+  ]
 
   scaling_config {
     desired_size = 1
@@ -114,11 +125,6 @@ resource "aws_eks_node_group" "basic_app_node_group" {
   instance_types = ["t3.small"]
   disk_size      = 20
 
-  # remote_access {
-  #   ec2_ssh_key = var.ssh_key_name
-  #   # source_security_group_ids = [aws_security_group.basic_app_sg.id]
-  # }
-
   ami_type = "AL2_x86_64"
 
   depends_on = [aws_eks_cluster.basic_app_cluster]
@@ -128,7 +134,33 @@ resource "aws_eks_node_group" "basic_app_node_group" {
   }
 
   tags = {
-    Name        = "basic_app_node_group"
+    Terraform   = "true"
     Environment = "dev"
   }
 }
+
+module "nlb" {
+  source = "./modules/loadbalancer"
+
+  vpc_id           = module.vpc.vpc_id
+  vpc_link_subnets = module.vpc.public_subnets
+
+  depends_on = [aws_eks_node_group.basic_app_node_group]
+}
+
+module "cognito" {
+  source = "./modules/cognito"
+
+  user_pool_name = "deliverynow-auth"
+}
+
+module "gateway" {
+  source = "./modules/gateway"
+
+  nlb_arn     = module.nlb.nlb_arn
+  nlb_dns     = module.nlb.nlb_dns
+  cognito_arn = module.cognito.arn
+
+  depends_on = [module.cognito]
+}
+
