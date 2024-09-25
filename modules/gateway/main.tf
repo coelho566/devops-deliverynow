@@ -1,86 +1,107 @@
-resource "aws_api_gateway_authorizer" "cognito_authorizer" {
-  name                            = "CognitoAuthorizer"
-  rest_api_id                     = aws_api_gateway_rest_api.main.id
-  type                            = "COGNITO_USER_POOLS"
-  provider_arns                   = [var.cognito_arn]  # ID do seu User Pool
-  identity_source                 = "method.request.header.Authorization"  # Header da autorização
-}
+module "api_gateway" {
+  source  = "terraform-aws-modules/apigateway-v2/aws"
+  version = "~> 5.1.2"
 
-resource "aws_api_gateway_vpc_link" "main" {
-  name        = "foobar_gateway_vpclink"
-  description = "Foobar Gateway VPC Link. Managed by Terraform."
-  target_arns = [var.nlb_arn]
-}
+  name          = "gateway-teste"
+  description   = "BMB HTTP API Gateway"
+  protocol_type = "HTTP"
 
-resource "aws_api_gateway_rest_api" "main" {
-  name        = "foobar_gateway"
-  description = "Foobar Gateway used for EKS. Managed by Terraform."
-  endpoint_configuration {
-    types = ["REGIONAL"]
+  cors_configuration = {
+    allow_headers = ["content-type", "x-amz-date", "authorization", "x-api-key", "x-amz-security-token", "x-amz-user-agent"]
+    allow_methods = ["*"]
+    allow_origins = ["*"]
+  }
+
+  # Access logs
+  stage_access_log_settings = {
+    create_log_group            = true
+    log_group_retention_in_days = 1
+    format = jsonencode({
+      context = {
+        domainName              = "$context.domainName"
+        integrationErrorMessage = "$context.integrationErrorMessage"
+        protocol                = "$context.protocol"
+        requestId               = "$context.requestId"
+        requestTime             = "$context.requestTime"
+        responseLength          = "$context.responseLength"
+        routeKey                = "$context.routeKey"
+        stage                   = "$context.stage"
+        status                  = "$context.status"
+        error = {
+          message      = "$context.error.message"
+          responseType = "$context.error.responseType"
+        }
+        identity = {
+          sourceIP = "$context.identity.sourceIp"
+        }
+        integration = {
+          error             = "$context.integration.error"
+          integrationStatus = "$context.integration.integrationStatus"
+        }
+      }
+    })
+  }
+
+  create_domain_name = false
+
+    # Authorizer(s)
+  authorizers = {
+    cognito = {
+      authorizer_type  = "JWT"
+      identity_sources = ["$request.header.Authorization"]
+      name             = "cognito"
+      jwt_configuration = {
+        audience = [var.cognito_id]
+        issuer   = "https://${var.cognito_endpoint}"
+      }
+    }
+  }
+
+  # Routes & Integration(s)
+  routes = {
+    "ANY /{proxy+}" = {
+      authorization_type   = "JWT"
+      authorizer_key       = "cognito"
+      integration = {
+        connection_type = "VPC_LINK"
+        type            = "HTTP_PROXY"
+        uri             = var.nlb_arn
+        method          = "ANY"
+        vpc_link_key    = "bmb-vpc"
+      }
+    }
+  }
+
+  # VPC Link
+  vpc_links = {
+    bmb-vpc = {
+      name               = "gateway-teste-vpc_link"
+      security_group_ids = [module.api_gateway_security_group.security_group_id]
+      subnet_ids         = var.vpc_link_subnets
+    }
+  }
+
+  tags = {
+    Created   = timestamp()
+    Terraform = "true"
   }
 }
 
-resource "aws_api_gateway_resource" "root_resource" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
-  path_part   = "{proxy+}"
-}
+module "api_gateway_security_group" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~> 5.1.2"
 
-resource "aws_api_gateway_method" "root" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.root_resource.id
-  http_method   = "ANY"
-  authorization = "COGNITO_USER_POOLS"  # Habilitando autenticação Cognito
-  authorizer_id = aws_api_gateway_authorizer.cognito_authorizer.id  # Referência ao authorizer criado
+  name        = "bmb-vpclink-sg"
+  description = "API Gateway group for example usage"
+  vpc_id      = var.vpc_id
 
-  request_parameters = {
-    "method.request.path.proxy"           = true
-    "method.request.header.Authorization" = true  # Exigindo o header de autorização
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  ingress_rules       = ["http-80-tcp"]
+
+  egress_rules = ["all-all"]
+
+  tags = {
+    Terraform = "true"
+    Created   = timestamp()
   }
-
-  depends_on = [aws_api_gateway_resource.root_resource, aws_api_gateway_authorizer.cognito_authorizer]
-}
-
-# Configurando a integração HTTP_PROXY
-resource "aws_api_gateway_integration" "root" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_rest_api.main.root_resource_id
-  http_method = aws_api_gateway_method.root.http_method
-
-  integration_http_method = "ANY"
-  type                    = "HTTP_PROXY"
-  uri                     = "http://${var.nlb_dns}/{proxy}"  # Substitua pelo DNS do NLB
-  passthrough_behavior    = "WHEN_NO_MATCH"
-  content_handling        = "CONVERT_TO_TEXT"
-
-  request_parameters = {
-    "integration.request.path.proxy"           = "method.request.path.proxy"
-    "integration.request.header.Accept"        = "'application/json'"
-    "integration.request.header.Authorization" = "method.request.header.Authorization"  # Passa a autorização para o NLB
-  }
-
-  connection_type = "VPC_LINK"
-  connection_id   = aws_api_gateway_vpc_link.main.id
-  depends_on = [aws_api_gateway_method.root]
-}
-
-resource "aws_api_gateway_stage" "stage_dev" {
-  deployment_id = aws_api_gateway_deployment.deployment.id
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  stage_name    = "dev"
-}
-
-resource "aws_api_gateway_deployment" "deployment" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-
-  triggers = {
-    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.main.body))
-    auto_deploy  = true
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  depends_on = [aws_api_gateway_integration.root]
 }

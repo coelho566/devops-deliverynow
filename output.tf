@@ -45,6 +45,6 @@ output "database_subnets" {
 ################################################################################
 # Api Gateway
 ################################################################################
-output "base_url" {
-  value = module.gateway.base_url
-}
+#output "base_url" {
+#  value = module.gateway.base_url
+#}

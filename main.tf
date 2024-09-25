@@ -157,9 +157,13 @@ module "cognito" {
 module "gateway" {
   source = "./modules/gateway"
 
-  nlb_arn     = module.nlb.nlb_arn
-  nlb_dns     = module.nlb.nlb_dns
-  cognito_arn = module.cognito.arn
+  nlb_arn          = module.nlb.nlb_listener_arn
+  nlb_dns          = module.nlb.nlb_dns
+  cognito_arn      = module.cognito.arn
+  vpc_id           = module.vpc.vpc_id
+  vpc_link_subnets = module.vpc.public_subnets
+  cognito_endpoint = module.cognito.cognito_endpoint
+  cognito_id       = module.cognito.cognito_id
 
   depends_on = [module.cognito]
 }

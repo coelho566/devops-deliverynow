@@ -46,7 +46,7 @@ data "aws_instance" "foo" {
 
 resource "aws_lb_target_group_attachment" "tg_attachment_1" {
   target_group_arn = aws_lb_target_group.deliverynow_tg.arn
-  target_id        = data.aws_instance.foo.id# Exemplo de IP da sub-rede privada 10.0.1.0/24
+  target_id        = data.aws_instance.foo.id
   port             = 31000
 }
 
