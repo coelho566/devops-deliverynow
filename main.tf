@@ -183,7 +183,6 @@ module "secrets_manager" {
   name_prefix             = "dev/cognito_secrets"
   description             = "Cognito secrets  "
   recovery_window_in_days = 7
-  kms_key_id              = "aws/secretsmanager"
 
   # Version
   ignore_secret_changes = true
