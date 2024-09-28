@@ -11,3 +11,11 @@ variable "aws_ecr_name" {
   nullable    = false
   default     = "deliverynow-ecr"
 }
+
+
+variable "lab_role" {
+  description = "Role aws lab"
+  type        = string
+  nullable    = false
+  default     = "arn:aws:iam::388512399861:role/LabRole"
+}

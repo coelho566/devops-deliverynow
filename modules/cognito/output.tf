@@ -13,3 +13,11 @@ output "cognito_endpoint" {
 output "cognito_id" {
   value = aws_cognito_user_pool_client.bmb_test_client.id
 }
+
+output "admin_password" {
+  value = aws_cognito_user.admin_user.password
+}
+
+output "admin_username" {
+  value = aws_cognito_user.admin_user.username
+}

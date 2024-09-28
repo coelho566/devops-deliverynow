@@ -50,7 +50,7 @@ module "ecr" {
 
   repository_name = var.aws_ecr_name
 
-  repository_read_write_access_arns = ["arn:aws:iam::388512399861:role/LabRole"]
+  repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
   repository_encryption_type        = "AES256"
 
@@ -81,7 +81,7 @@ module "ecr" {
 
 resource "aws_eks_cluster" "basic_app_cluster" {
   name     = "deliverynow-eks"
-  role_arn = "arn:aws:iam::388512399861:role/LabRole"
+  role_arn = var.lab_role
 
   vpc_config {
     subnet_ids = [
@@ -92,8 +92,6 @@ resource "aws_eks_cluster" "basic_app_cluster" {
       module.vpc.private_subnets[2],
       module.vpc.public_subnets[2]
     ]
-
-    # security_group_ids = [aws_security_group.basic_app_eks_sg.id]
   }
 
   tags = {
@@ -105,7 +103,7 @@ resource "aws_eks_cluster" "basic_app_cluster" {
 resource "aws_eks_node_group" "basic_app_node_group" {
   cluster_name    = "deliverynow-eks"
   node_group_name = "basic_app_node_group"
-  node_role_arn   = "arn:aws:iam::388512399861:role/LabRole"
+  node_role_arn   = var.lab_role
   subnet_ids = [
     module.vpc.private_subnets[0],
     module.vpc.private_subnets[1],
@@ -166,5 +164,41 @@ module "gateway" {
   cognito_id       = module.cognito.cognito_id
 
   depends_on = [module.cognito]
+}
+
+module "lambda" {
+  source = "./modules/lambda"
+
+  gateway_id            = module.gateway.api_id
+  gateway_execution_arn = module.gateway.api_execution_arn
+  lambda_role  = var.lab_role
+
+  depends_on = [module.gateway]
+}
+
+module "secrets_manager" {
+  source = "terraform-aws-modules/secrets-manager/aws"
+
+  # Secret
+  name_prefix             = "dev/cognito_secrets"
+  description             = "Cognito secrets  "
+  recovery_window_in_days = 7
+  kms_key_id              = "aws/secretsmanager"
+
+  # Version
+  ignore_secret_changes = true
+  secret_string = jsonencode({
+    appClientId   = module.cognito.cognito_id,
+    userPoolId    = module.cognito.id,
+    adminUser     = module.cognito.admin_username,
+    adminPassword = module.cognito.admin_password
+  })
+
+  depends_on = [module.cognito]
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
 }
 
