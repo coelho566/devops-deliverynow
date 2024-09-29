@@ -180,7 +180,7 @@ module "secrets_manager" {
   source = "terraform-aws-modules/secrets-manager/aws"
 
   # Secret
-  name_prefix             = "dev/cognito_secrets"
+  name             = "dev/cognito_secrets"
   description             = "Cognito secrets  "
   recovery_window_in_days = 7
 
