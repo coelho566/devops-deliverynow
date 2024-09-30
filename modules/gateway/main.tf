@@ -2,7 +2,7 @@ module "api_gateway" {
   source  = "terraform-aws-modules/apigateway-v2/aws"
   version = "~> 5.1.2"
 
-  name          = "gateway-teste"
+  name          = "gateway-deliverynow"
   description   = "BMB HTTP API Gateway"
   protocol_type = "HTTP"
 
@@ -75,7 +75,7 @@ module "api_gateway" {
   # VPC Link
   vpc_links = {
     bmb-vpc = {
-      name               = "gateway-teste-vpc_link"
+      name               = "gateway-deliverynow-vpc_link"
       security_group_ids = [module.api_gateway_security_group.security_group_id]
       subnet_ids         = var.vpc_link_subnets
     }
@@ -91,7 +91,7 @@ module "api_gateway_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 5.1.2"
 
-  name        = "bmb-vpclink-sg"
+  name        = "deliverynow-vpclink-sg"
   description = "API Gateway group for example usage"
   vpc_id      = var.vpc_id
 
