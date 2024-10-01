@@ -20,19 +20,46 @@
 
 - https://miro.com/miroverse/sistema-de-delivery/?social=copy-link
 
-## | ✉️ • Lambda: Autenticação com AWS Cognito
+# Infraestrutura AWS com Terraform
 
-Esta AWS Lambda faz parte do sistema de delivery "deliverynow" e é responsável por autenticar usuários via AWS Cognito. Ela é acionada através do AWS API Gateway, que recebe as solicitações e as encaminha para a Lambda. A Lambda realiza a autenticação dos usuários utilizando o serviço de identidade do Cognito, validando os tokens de acesso e garantindo que apenas usuários autenticados possam acessar os recursos protegidos do sistema.
+Este repositório contém a infraestrutura do projeto **deliverynow**, configurada utilizando o Terraform. Ele inclui módulos para provisionamento dos principais recursos na AWS, necessários para suportar a aplicação.
 
-### Funcionalidades:
+## Módulos Principais
 
-- Recebe solicitações via AWS API Gateway.
-- Integração com AWS Cognito para autenticação de usuários.
-- Valida tokens JWT emitidos pelo Cognito.
-- Retorna respostas apropriadas de sucesso ou erro com base na validação do token.
+- **VPC**: Configuração de Virtual Private Cloud para gerenciar a rede da infraestrutura.
+- **ECR**: Amazon Elastic Container Registry para armazenar as imagens de container Docker.
+- **EKS**: Amazon Elastic Kubernetes Service para orquestração de containers, responsável por rodar os serviços da aplicação.
+- **Cognito**: Gerenciamento de autenticação de usuários, com integração para o controle de acesso à API e Lambda.
+- **Lambda**: Funções serverless para processar requisições e eventos.
+- **API Gateway**: Exposição de APIs para comunicação com a aplicação e serviços externos.
+- **Secrets Manager**: Armazenamento seguro de credenciais e informações sensíveis usadas pela aplicação.
+- **Load Balancer**: Balanceamento de carga para distribuir o tráfego de rede entre os serviços do EKS.
 
-### Fluxo:
+## Estrutura do Repositório
 
-1. O usuário realiza uma requisição para o Gateway.
-2. A Lambda recebe a requisição e utiliza o Cognito para autenticar o usuário.
-3. Após a validação, a Lambda retorna uma resposta indicando o sucesso ou falha da autenticação.
+O repositório está organizado de forma modular, permitindo fácil manutenção e reutilização dos componentes da infraestrutura.
+
+Cada módulo pode ser gerenciado de forma independente, facilitando o controle de versão e o ciclo de vida dos recursos provisionados.
+
+## Como Usar
+
+1. Configure suas credenciais AWS.
+2. Clone este repositório:
+
+   ```bash
+   git clone <url-do-repositorio>
+
+   ```
+
+3. Execute os comandos do Terraform para provisionar os recursos:
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+## Requisitos
+
+- Terraform >= 1.0.0
+- AWS CLI configurado com as permissões adequadas
+- Conta AWS válida com permissões para provisionamento de recursos
