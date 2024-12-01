@@ -44,7 +44,7 @@ module "vpc" {
 
 }
 
-module "ecr" {
+module "ecr_application_deliverynow_user" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
@@ -78,7 +78,7 @@ module "ecr" {
   }
 }
 
-module "ecr" {
+module "ecr_application_deliverynow_order" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
@@ -112,7 +112,7 @@ module "ecr" {
   }
 }
 
-module "ecr" {
+module "ecr_application_deliverynow_product" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
