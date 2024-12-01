@@ -48,7 +48,7 @@ module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = var.aws_ecr_name
+  repository_name = "application-deliverynow-user"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -78,6 +78,73 @@ module "ecr" {
   }
 }
 
+module "ecr" {
+  source  = "terraform-aws-modules/ecr/aws"
+  version = "2.3.0"
+
+  repository_name = "application-deliverynow-order"
+
+  repository_read_write_access_arns = [var.lab_role]
+  repository_image_tag_mutability   = "MUTABLE"
+  repository_encryption_type        = "AES256"
+
+  repository_lifecycle_policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1,
+        description  = "Keep last 30 images",
+        selection = {
+          tagStatus     = "tagged",
+          tagPrefixList = ["v"],
+          countType     = "imageCountMoreThan",
+          countNumber   = 30
+        },
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
+}
+
+module "ecr" {
+  source  = "terraform-aws-modules/ecr/aws"
+  version = "2.3.0"
+
+  repository_name = "application-deliverynow-product"
+
+  repository_read_write_access_arns = [var.lab_role]
+  repository_image_tag_mutability   = "MUTABLE"
+  repository_encryption_type        = "AES256"
+
+  repository_lifecycle_policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1,
+        description  = "Keep last 30 images",
+        selection = {
+          tagStatus     = "tagged",
+          tagPrefixList = ["v"],
+          countType     = "imageCountMoreThan",
+          countNumber   = 30
+        },
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
+}
 
 resource "aws_eks_cluster" "basic_app_cluster" {
   name     = "deliverynow-eks"
