@@ -187,8 +187,8 @@ resource "aws_eks_node_group" "basic_app_node_group" {
     prevent_destroy = false
   }
 
-  instance_types = ["t3.small"]
-  disk_size      = 20
+  instance_types = ["t3.large"]
+  disk_size      = 30
 
   ami_type = "AL2_x86_64"
 
