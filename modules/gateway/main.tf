@@ -2,8 +2,8 @@ module "api_gateway" {
   source  = "terraform-aws-modules/apigateway-v2/aws"
   version = "~> 5.1.2"
 
-  name          = "gateway-deliverynow"
-  description   = "BMB HTTP API Gateway"
+  name          = "gateway-filezip"
+  description   = "File Zip API Gateway"
   protocol_type = "HTTP"
 
   cors_configuration = {
@@ -45,23 +45,23 @@ module "api_gateway" {
   create_domain_name = false
 
     # Authorizer(s)
-  authorizers = {
-    cognito = {
-      authorizer_type  = "JWT"
-      identity_sources = ["$request.header.Authorization"]
-      name             = "cognito"
-      jwt_configuration = {
-        audience = [var.cognito_id]
-        issuer   = "https://${var.cognito_endpoint}"
-      }
-    }
-  }
+#   authorizers = {
+#     cognito = {
+#       authorizer_type  = "JWT"
+#       identity_sources = ["$request.header.Authorization"]
+#       name             = "cognito"
+#       jwt_configuration = {
+#         audience = [var.cognito_id]
+#         issuer   = "https://${var.cognito_endpoint}"
+#       }
+#     }
+#   }
 
   # Routes & Integration(s)
   routes = {
     "ANY /{proxy+}" = {
-      authorization_type   = "JWT"
-      authorizer_key       = "cognito"
+#       authorization_type   = "JWT"
+#       authorizer_key       = "cognito"
       integration = {
         connection_type = "VPC_LINK"
         type            = "HTTP_PROXY"
@@ -75,7 +75,7 @@ module "api_gateway" {
   # VPC Link
   vpc_links = {
     bmb-vpc = {
-      name               = "gateway-deliverynow-vpc_link"
+      name               = "gateway-filezip-vpc_link"
       security_group_ids = [module.api_gateway_security_group.security_group_id]
       subnet_ids         = var.vpc_link_subnets
     }
@@ -91,7 +91,7 @@ module "api_gateway_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 5.1.2"
 
-  name        = "deliverynow-vpclink-sg"
+  name        = "filezip-vpclink-sg"
   description = "API Gateway group for example usage"
   vpc_id      = var.vpc_id
 

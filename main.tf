@@ -26,29 +26,29 @@ module "vpc" {
   enable_vpn_gateway = true
 
   public_subnet_tags = {
-    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    "kubernetes.io/cluster/filezip-eks" = "shared"
     "kubernetes.io/role/elb"                = 1
   }
 
   private_subnet_tags = {
-    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    "kubernetes.io/cluster/filezip-eks" = "shared"
     "kubernetes.io/role/internal-elb"       = 1
   }
 
   tags = {
     Terraform                               = "true"
     Environment                             = "dev"
-    Project                                 = "deliverynow"
-    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    Project                                 = "filezip"
+    "kubernetes.io/cluster/filezip-eks" = "shared"
   }
 
 }
 
-module "ecr_application_deliverynow_user" {
+module "ecr_service-filezip-management" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-deliverynow-user"
+  repository_name = "service-filezip-management"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -78,45 +78,11 @@ module "ecr_application_deliverynow_user" {
   }
 }
 
-module "ecr_application_deliverynow_order" {
+module "ecr_service-filezip-processor" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-deliverynow-order"
-
-  repository_read_write_access_arns = [var.lab_role]
-  repository_image_tag_mutability   = "MUTABLE"
-  repository_encryption_type        = "AES256"
-
-  repository_lifecycle_policy = jsonencode({
-    rules = [
-      {
-        rulePriority = 1,
-        description  = "Keep last 30 images",
-        selection = {
-          tagStatus     = "tagged",
-          tagPrefixList = ["v"],
-          countType     = "imageCountMoreThan",
-          countNumber   = 30
-        },
-        action = {
-          type = "expire"
-        }
-      }
-    ]
-  })
-
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
-  }
-}
-
-module "ecr_application_deliverynow_product" {
-  source  = "terraform-aws-modules/ecr/aws"
-  version = "2.3.0"
-
-  repository_name = "application-deliverynow-product"
+  repository_name = "service-filezip-processor"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -147,7 +113,7 @@ module "ecr_application_deliverynow_product" {
 }
 
 resource "aws_eks_cluster" "basic_app_cluster" {
-  name     = "deliverynow-eks"
+  name     = "filezip-eks"
   role_arn = var.lab_role
 
   vpc_config {
@@ -168,7 +134,7 @@ resource "aws_eks_cluster" "basic_app_cluster" {
 }
 
 resource "aws_eks_node_group" "basic_app_node_group" {
-  cluster_name    = "deliverynow-eks"
+  cluster_name    = "filezip-eks"
   node_group_name = "basic_app_node_group"
   node_role_arn   = var.lab_role
   subnet_ids = [
@@ -213,58 +179,14 @@ module "nlb" {
   depends_on = [aws_eks_node_group.basic_app_node_group]
 }
 
-module "cognito" {
-  source = "./modules/cognito"
-
-  user_pool_name = "deliverynow-auth"
-}
-
 module "gateway" {
   source = "./modules/gateway"
 
   nlb_arn          = module.nlb.nlb_listener_arn
   nlb_dns          = module.nlb.nlb_dns
-  cognito_arn      = module.cognito.arn
   vpc_id           = module.vpc.vpc_id
   vpc_link_subnets = module.vpc.public_subnets
-  cognito_endpoint = module.cognito.cognito_endpoint
-  cognito_id       = module.cognito.cognito_id
 
-  depends_on = [module.cognito]
-}
-
-module "lambda" {
-  source = "./modules/lambda"
-
-  gateway_id            = module.gateway.api_id
-  gateway_execution_arn = module.gateway.api_execution_arn
-  lambda_role  = var.lab_role
-
-  depends_on = [module.gateway]
-}
-
-module "secrets_manager" {
-  source = "terraform-aws-modules/secrets-manager/aws"
-
-  # Secret
-  name             = "dev/cognito_secrets"
-  description             = "Cognito secrets  "
-  recovery_window_in_days = 7
-
-  # Version
-  ignore_secret_changes = true
-  secret_string = jsonencode({
-    appClientId   = module.cognito.cognito_id,
-    userPoolId    = module.cognito.id,
-    adminUser     = module.cognito.admin_username,
-    adminPassword = module.cognito.admin_password
-  })
-
-  depends_on = [module.cognito]
-
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
-  }
+  depends_on = [module.nlb]
 }
 
