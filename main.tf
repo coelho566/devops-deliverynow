@@ -44,11 +44,11 @@ module "vpc" {
 
 }
 
-module "ecr_application_filezip_user" {
+module "ecr_service_filezip_management" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-filezip-user"
+  repository_name = "service-filezip-management"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -78,11 +78,11 @@ module "ecr_application_filezip_user" {
   }
 }
 
-module "ecr_application_filezip_order" {
+module "ecr_service_filezip_autentication" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-filezip-order"
+  repository_name = "service-filezip-autentication"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -112,11 +112,11 @@ module "ecr_application_filezip_order" {
   }
 }
 
-module "ecr_application_filezip_product" {
+module "ecr_service_filezip_processor" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-filezip-product"
+  repository_name = "service-filezip-processor"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -224,12 +224,20 @@ module "gateway" {
 
 }
 
+resource "aws_s3_bucket" "filezip_terraform"{
+  bucket = "filezip-terraform"
+}
+
 resource "aws_s3_bucket" "filezip_bucket"{
-  bucket = "filezip-bucket-servic"
+  bucket = "filezip-bucket-service"
 }
 
 resource "aws_sqs_queue" "process_queue"{
     name = "filezip-process-queue"
+}
+
+resource "aws_sqs_queue" "send_email_queue"{
+    name = "filezip-send_email_queue"
 }
 
 # Criar uma política para permitir que o S3 publique mensagens na SQS

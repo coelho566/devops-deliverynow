@@ -9,7 +9,7 @@ variable "aws_ecr_name" {
   description = "Colocar sempre a descrição"
   type        = string
   nullable    = false
-  default     = "deliverynow-ecr"
+  default     = "filezip-ecr"
 }
 
 
