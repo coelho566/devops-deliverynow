@@ -71,7 +71,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
   infra-keycloak:
-    name: "Terraform Apply"
+    name: "Terraform Apply Keycloak"
     runs-on: "ubuntu-latest"
     needs: deploy-ecr-keycloak
     steps:
@@ -86,13 +86,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Terraform init
+      - name: Terraform init ecs
         run:
           cd ecs
           terraform init -backend-config=example.s3.tfbackend
 
-      - name: Terraform Plan
+      - name: Terraform Plan ecs
         run: terraform plan
 
-      - name: Terraform Apply
+      - name: Terraform Apply ecs
         run: terraform apply -auto-approve
