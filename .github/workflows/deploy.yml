@@ -35,7 +35,7 @@ jobs:
   deploy-ecr-keycloak:
     name: Deploy AWS ECR
     runs-on: ubuntu-latest
-    needs: build
+    needs: infra-filezip
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -73,6 +73,7 @@ jobs:
   infra-keycloak:
     name: "Terraform Apply"
     runs-on: "ubuntu-latest"
+    needs: deploy-ecr-keycloak
     steps:
       - name: "Configure AWS Credentials"
         uses: aws-actions/configure-aws-credentials@v4
