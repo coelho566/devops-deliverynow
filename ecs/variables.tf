@@ -64,10 +64,10 @@ variable "db-instance-type" {
   description = "RDS instance type: https://aws.amazon.com/rds/instance-types/"
 }
 
-variable "loadbalancer-certificate-arn" {
-  type        = string
-  description = "ARN of the ACM certificate to use for the load balancer"
-}
+#variable "loadbalancer-certificate-arn" {
+#  type        = string
+#  description = "ARN of the ACM certificate to use for the load balancer"
+#}
 
 variable "keycloak-hostname" {
   type        = string
