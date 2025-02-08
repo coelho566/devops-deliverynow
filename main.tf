@@ -155,9 +155,7 @@ resource "aws_eks_cluster" "basic_app_cluster" {
       module.vpc.private_subnets[0],
       module.vpc.public_subnets[0],
       module.vpc.private_subnets[1],
-      module.vpc.public_subnets[1],
-      module.vpc.private_subnets[2],
-      module.vpc.public_subnets[2]
+      module.vpc.public_subnets[1]
     ]
   }
 
@@ -173,8 +171,7 @@ resource "aws_eks_node_group" "basic_app_node_group" {
   node_role_arn   = var.lab_role
   subnet_ids = [
     module.vpc.private_subnets[0],
-    module.vpc.private_subnets[1],
-    module.vpc.private_subnets[2]
+    module.vpc.private_subnets[1]
   ]
 
   scaling_config {
