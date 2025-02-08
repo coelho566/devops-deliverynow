@@ -1,7 +1,7 @@
 variable "api_name" {
   description = "Application name"
   type = string
-  default     = "deliverynow"
+  default     = "filezip"
 }
 
 variable "vpc_id" {

@@ -1,0 +1,3 @@
+bucket = "filezip-terraform"
+key    = "terraform/ecs-keycloak/keycloak-staging/terraform.tfstate"
+region = "us-east-1"

@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "5.66.0"
+      version = "5.82.0"
     }
   }
 }
@@ -15,7 +15,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.13.0"
 
-  name = "deliverynow-vpc"
+  name = "filezip-vpc"
   cidr = "10.0.0.0/16"
 
   azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
@@ -26,29 +26,29 @@ module "vpc" {
   enable_vpn_gateway = true
 
   public_subnet_tags = {
-    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    "kubernetes.io/cluster/filezip-eks" = "shared"
     "kubernetes.io/role/elb"                = 1
   }
 
   private_subnet_tags = {
-    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    "kubernetes.io/cluster/filezip-eks" = "shared"
     "kubernetes.io/role/internal-elb"       = 1
   }
 
   tags = {
     Terraform                               = "true"
     Environment                             = "dev"
-    Project                                 = "deliverynow"
-    "kubernetes.io/cluster/deliverynow-eks" = "shared"
+    Project                                 = "filezip"
+    "kubernetes.io/cluster/filezip-eks" = "shared"
   }
 
 }
 
-module "ecr_application_deliverynow_user" {
+module "ecr_service_filezip_management" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-deliverynow-user"
+  repository_name = "service-filezip-management"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -78,11 +78,11 @@ module "ecr_application_deliverynow_user" {
   }
 }
 
-module "ecr_application_deliverynow_order" {
+module "ecr_service_filezip_autentication" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-deliverynow-order"
+  repository_name = "service-filezip-autentication"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -112,11 +112,11 @@ module "ecr_application_deliverynow_order" {
   }
 }
 
-module "ecr_application_deliverynow_product" {
+module "ecr_service_filezip_processor" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "application-deliverynow-product"
+  repository_name = "service-filezip-processor"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
@@ -147,7 +147,7 @@ module "ecr_application_deliverynow_product" {
 }
 
 resource "aws_eks_cluster" "basic_app_cluster" {
-  name     = "deliverynow-eks"
+  name     = "filezip-eks"
   role_arn = var.lab_role
 
   vpc_config {
@@ -168,7 +168,7 @@ resource "aws_eks_cluster" "basic_app_cluster" {
 }
 
 resource "aws_eks_node_group" "basic_app_node_group" {
-  cluster_name    = "deliverynow-eks"
+  cluster_name    = "filezip-eks"
   node_group_name = "basic_app_node_group"
   node_role_arn   = var.lab_role
   subnet_ids = [
@@ -213,58 +213,63 @@ module "nlb" {
   depends_on = [aws_eks_node_group.basic_app_node_group]
 }
 
-module "cognito" {
-  source = "./modules/cognito"
-
-  user_pool_name = "deliverynow-auth"
-}
 
 module "gateway" {
   source = "./modules/gateway"
 
   nlb_arn          = module.nlb.nlb_listener_arn
   nlb_dns          = module.nlb.nlb_dns
-  cognito_arn      = module.cognito.arn
   vpc_id           = module.vpc.vpc_id
   vpc_link_subnets = module.vpc.public_subnets
-  cognito_endpoint = module.cognito.cognito_endpoint
-  cognito_id       = module.cognito.cognito_id
 
-  depends_on = [module.cognito]
 }
 
-module "lambda" {
-  source = "./modules/lambda"
-
-  gateway_id            = module.gateway.api_id
-  gateway_execution_arn = module.gateway.api_execution_arn
-  lambda_role  = var.lab_role
-
-  depends_on = [module.gateway]
+resource "aws_s3_bucket" "filezip_terraform"{
+  bucket = "filezip-terraform"
 }
 
-module "secrets_manager" {
-  source = "terraform-aws-modules/secrets-manager/aws"
+resource "aws_s3_bucket" "filezip_bucket"{
+  bucket = "filezip-bucket-service"
+}
 
-  # Secret
-  name             = "dev/cognito_secrets"
-  description             = "Cognito secrets  "
-  recovery_window_in_days = 7
+resource "aws_sqs_queue" "process_queue"{
+    name = "filezip-process-queue"
+}
 
-  # Version
-  ignore_secret_changes = true
-  secret_string = jsonencode({
-    appClientId   = module.cognito.cognito_id,
-    userPoolId    = module.cognito.id,
-    adminUser     = module.cognito.admin_username,
-    adminPassword = module.cognito.admin_password
+resource "aws_sqs_queue" "send_email_queue"{
+    name = "filezip-send_email_queue"
+}
+
+# Criar uma política para permitir que o S3 publique mensagens na SQS
+resource "aws_sqs_queue_policy" "s3_policy" {
+  queue_url = aws_sqs_queue.process_queue.id
+
+  policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Effect    = "Allow",
+        Principal = "*",
+        Action    = "SQS:SendMessage",
+        Resource  = aws_sqs_queue.process_queue.arn,
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_s3_bucket.filezip_bucket.arn
+          }
+        }
+      }
+    ]
   })
+}
 
-  depends_on = [module.cognito]
+# Criar a configuração de notificação no S3
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = aws_s3_bucket.filezip_bucket.id
 
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
+  queue {
+    queue_arn     = aws_sqs_queue.process_queue.arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_prefix = "videos/"
+    filter_suffix = ".mp4"
   }
 }
-

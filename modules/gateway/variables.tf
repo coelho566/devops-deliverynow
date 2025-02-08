@@ -10,11 +10,6 @@ variable "nlb_dns" {
   nullable = false
 }
 
-variable "cognito_arn" {
-  description = "Cognito arn"  
-  type    = string
-  nullable = false
-}
 
 variable "vpc_link_subnets" {
   description = "Vpc link subnets"  
@@ -24,18 +19,6 @@ variable "vpc_link_subnets" {
 
 variable "vpc_id" {
   description = "Vpc id"  
-  type    = string
-  nullable = false
-}
-
-variable "cognito_endpoint" {
-  description = "Cognito endpoint"  
-  type    = string
-  nullable = false
-}
-
-variable "cognito_id" {
-  description = "Cognito id"  
   type    = string
   nullable = false
 }
