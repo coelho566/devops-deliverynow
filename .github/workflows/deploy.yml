@@ -19,6 +19,9 @@ jobs:
           
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
       
       - name: Terraform init
         run: terraform init
@@ -85,6 +88,9 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Instalar Terraform ecr
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init ecs
         run:
