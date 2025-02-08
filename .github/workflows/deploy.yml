@@ -93,7 +93,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init ecs
-        run:
+        run: |
           cd ecs
           terraform init -backend-config=example.s3.tfbackend
 
