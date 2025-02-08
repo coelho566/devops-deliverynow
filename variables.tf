@@ -17,5 +17,5 @@ variable "lab_role" {
   description = "Role aws lab"
   type        = string
   nullable    = false
-  default     = "arn:aws:iam::836507624722:role/LabRole"
+  default     = "arn:aws:iam::110832778598:role/LabRole"
 }
