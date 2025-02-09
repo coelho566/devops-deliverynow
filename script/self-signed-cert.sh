@@ -7,7 +7,7 @@ PREFIX=aws-self-signed
 
 if [ ! -f ${PREFIX}-key.pem ]; then
   echo "Generating private key..."
-  openssl genrsa 2048 > "aws-self-signed-private.key"
+  openssl genrsa 2048 > "${PREFIX}-private.key"
 fi
 
 openssl req -new -x509 \
@@ -17,7 +17,7 @@ openssl req -new -x509 \
   -days 365 \
   -extensions v3_ca \
   -addext "subjectAltName = DNS:localhost" \
-  -key "aws-self-signed-private.key" \
-  -out "aws-self-signed-public.crt"
+  -key "${PREFIX}-private.key" \
+  -out "${PREFIX}-public.crt"
 
-echo "Run 'aws acm import-certificate --certificate ${PREFIX}-public.crt --private-key ${PREFIX}-private.key'"
+echo "Run 'aws acm import-certificate --certificate fileb://${PREFIX}-public.crt --private-key fileb://${PREFIX}-private.key'"
