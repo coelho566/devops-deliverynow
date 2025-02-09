@@ -140,7 +140,7 @@ resource "aws_alb_listener" "https" {
 
   # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/describe-ssl-policies.html
   ssl_policy      = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn = "arn:aws:acm:us-east-1:110832778598:certificate/eb186a33-4e47-4529-930f-b4d1c93bf5e8"
+  certificate_arn = "arn:aws:acm:us-east-1:110832778598:certificate/6698664d-120d-4ba8-b9d4-bedb7da435d4"
 
   default_action {
     target_group_arn = aws_alb_target_group.keycloak.id
