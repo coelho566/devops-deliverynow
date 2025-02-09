@@ -82,7 +82,7 @@ module "ecr_service_filezip_autentication" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "2.3.0"
 
-  repository_name = "service-filezip-autentication"
+  repository_name = "service-keycloak"
 
   repository_read_write_access_arns = [var.lab_role]
   repository_image_tag_mutability   = "MUTABLE"
