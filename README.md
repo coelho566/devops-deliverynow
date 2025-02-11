@@ -1,9 +1,9 @@
 # FIAP - SOAT7 🚀
 
-## Team 95 - Delivery Now
+## Team 95 - File Zip
 
 ```
-🍔 System Fast Food
+🍔 System File Zip
 ```
 
 ---
@@ -22,7 +22,7 @@
 
 # Infraestrutura AWS com Terraform
 
-Este repositório contém a infraestrutura do projeto **deliverynow**, configurada utilizando o Terraform. Ele inclui módulos para provisionamento dos principais recursos na AWS, necessários para suportar a aplicação.
+Este repositório contém a infraestrutura do projeto **File Zip**, configurada utilizando o Terraform. Ele inclui módulos para provisionamento dos principais recursos na AWS, necessários para suportar a aplicação.
 
 ## Módulos Principais
 
@@ -34,6 +34,7 @@ Este repositório contém a infraestrutura do projeto **deliverynow**, configura
 - **API Gateway**: Exposição de APIs para comunicação com a aplicação e serviços externos.
 - **Secrets Manager**: Armazenamento seguro de credenciais e informações sensíveis usadas pela aplicação.
 - **Load Balancer**: Balanceamento de carga para distribuir o tráfego de rede entre os serviços do EKS.
+- **Keycloak**: Serviço de autenticação e gerenciamento do usuário
 
 ## Estrutura do Repositório
 
